@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CLARA: Clinical Language and Reasoning Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+    <style>
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .mode-btn.active {
+            background-color: white;
+            color: #3b82f6; /* blue-600 */
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans">
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+        <div class="container mx-auto px-4 md:px-8 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="text-4xl">🩺</div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800">CLARA</h1>
+                    <p class="text-sm text-slate-500">Clinical Language and Reasoning Assistant</p>
+                </div>
+            </div>
+             <!-- Mode Tabs -->
+            <div class="flex items-center border border-slate-200 rounded-lg p-1 bg-slate-100">
+                <button id="transcript-mode-btn" class="mode-btn px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200">
+                    Transcript Analysis
+                </button>
+                <button id="live-mode-btn" class="mode-btn px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200">
+                    Live Conversation
+                </button>
+                <button id="records-mode-btn" class="mode-btn px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200">
+                    Patient Records
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+        <!-- Transcript Analysis View -->
+        <div id="transcript-analysis-view">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Input Column -->
+                <div class="lg:col-span-4 bg-white p-6 rounded-xl shadow-md border border-slate-200 sticky top-24 space-y-4">
+                    <h2 class="text-lg font-semibold text-slate-700">Input Data</h2>
+                    <div>
+                        <label for="patient-age-input" class="block text-sm font-medium text-slate-600 mb-1">Patient Age <span class="text-red-500">*</span></label>
+                        <input type="number" id="patient-age-input" placeholder="e.g., 58" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-200">
+                    </div>
+                     <div>
+                        <label for="transcript-input" class="block text-sm font-medium text-slate-600 mb-1">Clinical Transcript <span class="text-red-500">*</span></label>
+                        <textarea id="transcript-input" placeholder="Enter or paste clinical notes here..."
+                            class="w-full h-80 p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-200 resize-y"></textarea>
+                    </div>
+                    <button id="analyze-button"
+                        class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center">
+                        Analyze Transcript
+                    </button>
+                </div>
+
+                <!-- Analysis Columns (Nav + Content) -->
+                <div id="analysis-section" class="lg:col-span-8 grid grid-cols-1 md:grid-cols-12 gap-8 items-start hidden">
+                    <!-- Navigation Column -->
+                    <nav id="analysis-nav" class="md:col-span-3 sticky top-24">
+                        <ul class="space-y-2">
+                            <!-- Navigation items will be injected here -->
+                        </ul>
+                    </nav>
+
+                    <!-- Content Column -->
+                    <div id="analysis-output" class="md:col-span-9 space-y-6">
+                        <!-- Dynamic content will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Initial State / Loading / Error Column -->
+                <div id="placeholder-section" class="lg:col-span-8">
+                    <!-- Initial state, loading, or error messages appear here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Live Conversation View -->
+        <div id="live-conversation-view" class="hidden">
+            <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-slate-700">Live AI Patient Interview</h2>
+                    <div class="flex items-center space-x-2">
+                         <label for="live-patient-age-input" class="text-sm font-medium text-slate-600">Patient Age:</label>
+                        <input type="number" id="live-patient-age-input" placeholder="e.g., 58" class="w-24 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    </div>
+                </div>
+                <div id="live-transcript-output" class="w-full h-96 p-4 border border-slate-300 rounded-md overflow-y-auto bg-slate-50 mb-4 space-y-4">
+                    <!-- Live transcript will appear here -->
+                    <div class="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
+                        <div class="text-4xl mb-3">🎙️</div>
+                        <p>Set the patient's age above, then click "Start Conversation" to begin the AI interview.</p>
+                    </div>
+                </div>
+                <button id="live-conversation-btn"
+                    class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center">
+                    <!-- Button content is set dynamically -->
+                </button>
+            </div>
+        </div>
+        
+        <!-- Patient Records View -->
+        <div id="patient-records-view" class="hidden">
+            <div class="max-w-5xl mx-auto">
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-4">Saved Patient Records</h2>
+                    <div id="records-list" class="space-y-4">
+                        <!-- Saved records will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="text-center p-4 text-sm text-slate-500 mt-8">
+        <p>CLARA.</p>
+    </footer>
+    
+    <!-- This script loads the API key from your local env.js file -->
+    <script src="env.js"></script>
+    <script type="module" src="index.js"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

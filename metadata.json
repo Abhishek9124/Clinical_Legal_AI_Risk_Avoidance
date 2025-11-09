@@ -1,0 +1,7 @@
+{
+  "name": "CLARA",
+  "description": "",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
