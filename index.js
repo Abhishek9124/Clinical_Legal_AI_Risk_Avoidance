@@ -540,7 +540,8 @@ const AIService = {
             throw new Error("API Key not configured. Please configure env.js.");
         }
         
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        const apiKey = window.process.env.API_KEY;
+        const ai = new GoogleGenAI({ apiKey });
         
         // Build RAG-enhanced prompt
         const ragContext = {
@@ -580,7 +581,8 @@ const AIService = {
             return parsedData;
         } catch (error) {
             console.error("AI Analysis Error:", error);
-            throw new Error("Failed to get analysis from AI. Please try again.");
+            const msg = error?.message || error?.toString() || "Unknown error";
+            throw new Error(`AI Analysis failed: ${msg}`);
         }
     }
 };
