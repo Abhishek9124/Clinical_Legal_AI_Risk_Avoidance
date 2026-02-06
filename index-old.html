@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CLARA: Clinical Legal AI for Risk Avoidance</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
+    <style>
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .mode-btn.active {
+            background-color: white;
+            color: #3b82f6; /* blue-600 */
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans">
+    <header class="bg-white shadow-sm border-b border-slate-200 sticky top-0 z-10">
+        <div class="container mx-auto px-4 md:px-8 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <div class="text-4xl">🩺</div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800">CLARA</h1>
+                    <p class="text-sm text-slate-500">Clinical Legal AI for Risk Avoidance</p>
+                </div>
+            </div>
+             <!-- Mode Tabs -->
+            <div class="flex items-center border border-slate-200 rounded-lg p-1 bg-slate-100">
+                <button id="transcript-mode-btn" class="mode-btn px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200">
+                    Transcript Analysis
+                </button>
+                <button id="live-mode-btn" class="mode-btn px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200">
+                    Live Conversation
+                </button>
+                <button id="records-mode-btn" class="mode-btn px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200">
+                    Patient Records
+                </button>
+                <button id="statistics-mode-btn" class="mode-btn px-4 py-1.5 text-sm font-semibold rounded-md transition-colors duration-200">
+                    📊 Statistics
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+        <!-- Transcript Analysis View -->
+        <div id="transcript-analysis-view">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Input Column -->
+                <div class="lg:col-span-4 bg-white p-6 rounded-xl shadow-md border border-slate-200 sticky top-24 space-y-4">
+                    <h2 class="text-lg font-semibold text-slate-700">Input Data</h2>
+                    <div>
+                        <label for="patient-age-input" class="block text-sm font-medium text-slate-600 mb-1">Patient Age <span class="text-red-500">*</span></label>
+                        <input type="number" id="patient-age-input" placeholder="e.g., 58" class="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-200">
+                    </div>
+                     <div>
+                        <label for="transcript-input" class="block text-sm font-medium text-slate-600 mb-1">Clinical Transcript <span class="text-red-500">*</span></label>
+                        <textarea id="transcript-input" placeholder="Enter or paste clinical notes here..."
+                            class="w-full h-80 p-3 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-200 resize-y"></textarea>
+                    </div>
+                    <button id="analyze-button"
+                        class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center">
+                        Analyze Transcript
+                    </button>
+                </div>
+
+                <!-- Analysis Columns (Nav + Content) -->
+                <div id="analysis-section" class="lg:col-span-8 grid grid-cols-1 md:grid-cols-12 gap-8 items-start hidden">
+                    <!-- Navigation Column -->
+                    <nav id="analysis-nav" class="md:col-span-3 sticky top-24">
+                        <ul class="space-y-2">
+                            <!-- Navigation items will be injected here -->
+                        </ul>
+                    </nav>
+
+                    <!-- Content Column -->
+                    <div id="analysis-output" class="md:col-span-9 space-y-6">
+                        <!-- Dynamic content will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Initial State / Loading / Error Column -->
+                <div id="placeholder-section" class="lg:col-span-8">
+                    <!-- Initial state, loading, or error messages appear here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Live Conversation View -->
+        <div id="live-conversation-view" class="hidden">
+            <div class="max-w-4xl mx-auto bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-slate-700">Live Doctor Patient Conversation</h2>
+                    <div class="flex items-center space-x-2">
+                         <label for="live-patient-age-input" class="text-sm font-medium text-slate-600">Patient Age:</label>
+                        <input type="number" id="live-patient-age-input" placeholder="e.g., 58" class="w-24 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                    </div>
+                </div>
+                <div id="live-transcript-output" class="w-full h-96 p-4 border border-slate-300 rounded-md overflow-y-auto bg-slate-50 mb-4 space-y-4">
+                    <!-- Live transcript will appear here -->
+                    <div class="flex flex-col items-center justify-center h-full text-center text-slate-500 p-8">
+                        <div class="text-4xl mb-3">🎙️</div>
+                        <p>Set the patient's age above, then click "Start Conversation" to begin the AI interview.</p>
+                    </div>
+                </div>
+                <button id="live-conversation-btn"
+                    class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-slate-400 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center">
+                    <!-- Button content is set dynamically -->
+                </button>
+            </div>
+        </div>
+        
+        <!-- Patient Records View -->
+        <div id="patient-records-view" class="hidden">
+            <div class="max-w-5xl mx-auto">
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-4">Saved Patient Records</h2>
+                    <div id="records-list" class="space-y-4">
+                        <!-- Saved records will be injected here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics View -->
+        <div id="statistics-view" class="hidden">
+            <div class="max-w-6xl mx-auto space-y-6">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500">Total Analyses</p>
+                                <p id="stat-total-analyses" class="text-3xl font-bold text-slate-800">0</p>
+                            </div>
+                            <div class="bg-blue-100 p-3 rounded-lg">
+                                <svg class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500">Avg Risk Score</p>
+                                <p id="stat-avg-risk" class="text-3xl font-bold text-slate-800">0%</p>
+                            </div>
+                            <div class="bg-orange-100 p-3 rounded-lg">
+                                <svg class="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500">This Week</p>
+                                <p id="stat-this-week" class="text-3xl font-bold text-slate-800">0</p>
+                            </div>
+                            <div class="bg-green-100 p-3 rounded-lg">
+                                <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm text-slate-500">High Risk Cases</p>
+                                <p id="stat-high-risk" class="text-3xl font-bold text-red-600">0</p>
+                            </div>
+                            <div class="bg-red-100 p-3 rounded-lg">
+                                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Common Diseases -->
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4">🦠 Most Common Diseases</h3>
+                        <div id="common-diseases-chart" class="space-y-3">
+                            <p class="text-slate-500 text-center py-8">No data available yet</p>
+                        </div>
+                    </div>
+
+                    <!-- Risk Level Distribution -->
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4">⚠️ Risk Level Distribution</h3>
+                        <div id="risk-distribution-chart" class="space-y-3">
+                            <p class="text-slate-500 text-center py-8">No data available yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- More Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Top Medications -->
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4">💊 Most Prescribed Medications</h3>
+                        <div id="top-medications-chart" class="space-y-3">
+                            <p class="text-slate-500 text-center py-8">No data available yet</p>
+                        </div>
+                    </div>
+
+                    <!-- Weekly Trend -->
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                        <h3 class="text-lg font-semibold text-slate-800 mb-4">📈 Weekly Analysis Trend</h3>
+                        <div id="weekly-trend-chart" class="space-y-3">
+                            <p class="text-slate-500 text-center py-8">No data available yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Code Modal -->
+        <div id="qr-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+                <div class="text-center">
+                    <h3 class="text-xl font-bold text-slate-800 mb-2">📱 Scan to Email Report</h3>
+                    <p class="text-sm text-slate-500 mb-4">Scan this QR code with your phone to receive the clinical report via email</p>
+                    <div id="qr-code-container" class="flex justify-center mb-4">
+                        <!-- QR code will be injected here -->
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4">Or share this link:</p>
+                    <input id="qr-link-input" type="text" readonly class="w-full p-2 text-xs bg-slate-100 border rounded text-slate-600 mb-4">
+                    <div class="flex space-x-2">
+                        <button id="copy-qr-link" class="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                            📋 Copy Link
+                        </button>
+                        <button id="close-qr-modal" class="flex-1 bg-slate-200 text-slate-700 py-2 px-4 rounded-lg font-semibold hover:bg-slate-300 transition-colors">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="text-center p-4 text-sm text-slate-500 mt-8">
+        <p>CLARA.</p>
+    </footer>
+    
+    <!-- This script loads the API key from your local env.js file -->
+    <script src="env.js"></script>
+    <script type="module" src="index.js"></script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
