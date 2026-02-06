@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 *.md
+*.pdf
+README/
+.env
+env.local
